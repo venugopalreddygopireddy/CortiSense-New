@@ -551,7 +551,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 // DO NOT automatically log in or save JWT. Force user to sign in.
                 onSuccess()
             } catch(e: Exception) {
-                errorMessage = "Registration Failed: ${e.message}"
+                if (e is retrofit2.HttpException) {
+                    val errorBody = e.response()?.errorBody()?.string()
+                    if (errorBody != null) {
+                        try {
+                            val jsonObject = org.json.JSONObject(errorBody)
+                            errorMessage = jsonObject.getString("detail")
+                        } catch (jsonException: Exception) {
+                            errorMessage = "Registration Failed: ${e.message}"
+                        }
+                    } else {
+                        errorMessage = "Registration Failed: ${e.message}"
+                    }
+                } else {
+                    errorMessage = "Registration Failed: ${e.message}"
+                }
             } finally {
                 isLoading = false
             }

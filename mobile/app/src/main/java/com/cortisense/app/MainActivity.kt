@@ -1674,6 +1674,8 @@ fun SignupScreen(
                 onClick = {
                     if (name.isBlank() || email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
                         errorMessage = context.getString(R.string.auth_error_fields)
+                    } else if (password.length < 8) {
+                        errorMessage = "Password must be at least 8 characters"
                     } else if (password != confirmPassword) {
                         errorMessage = context.getString(R.string.passwords_do_not_match)
                     } else {
