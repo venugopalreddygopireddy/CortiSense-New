@@ -2419,6 +2419,7 @@ fun HomeScreen(
     val todayCheckins by viewModel.todayCheckinsCount.collectAsState()
     val todaySleep by viewModel.todaySleepDuration.collectAsState()
     val currentUserName by viewModel.userName.collectAsState()
+    val profileImageUri by viewModel.profileImageUri.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.fetchDashboardSummary()
@@ -2445,14 +2446,25 @@ fun HomeScreen(
                 // Logo, Greeting, Name (Top Left)
                 // Logo, Greeting, Name (Top Left)
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                    Image(
-                        painter = painterResource(id = R.drawable.app_logo),
-                        contentDescription = "App Logo",
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
+                    if (profileImageUri.isNotEmpty()) {
+                        coil.compose.AsyncImage(
+                            model = profileImageUri,
+                            contentDescription = "Profile Image",
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.app_logo),
+                            contentDescription = "App Logo",
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
