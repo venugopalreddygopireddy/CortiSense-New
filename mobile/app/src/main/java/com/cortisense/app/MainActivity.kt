@@ -5142,12 +5142,21 @@ fun ProfileMainScreenContent(
                     color = MaterialTheme.colorScheme.primary,
                     tonalElevation = 8.dp
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.app_logo),
-                        contentDescription = "App Logo",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    if (imageUri.isNotEmpty()) {
+                        coil.compose.AsyncImage(
+                            model = imageUri,
+                            contentDescription = "Profile Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.app_logo),
+                            contentDescription = "App Logo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                 }
             }
         }
@@ -5172,15 +5181,27 @@ fun ProfileMainScreenContent(
 
         // Profile Header
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(id = R.drawable.app_logo),
-                contentDescription = "App Logo",
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .clickable { showImagePreview = true },
-                contentScale = ContentScale.Crop
-            )
+            if (imageUri.isNotEmpty()) {
+                coil.compose.AsyncImage(
+                    model = imageUri,
+                    contentDescription = "Profile Image",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .clickable { showImagePreview = true },
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = R.drawable.app_logo),
+                    contentDescription = "App Logo",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .clickable { showImagePreview = true },
+                    contentScale = ContentScale.Crop
+                )
+            }
             Spacer(modifier = Modifier.width(20.dp))
             Column {
                 Text(text = currentUserName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = textColor)
@@ -5433,10 +5454,54 @@ fun EditProfileScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         calendar.get(java.util.Calendar.DAY_OF_MONTH)
     )
 
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri -> if (uri != null) imageUri = uri.toString() }
-    )
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        if (uri != null) {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val bytes = inputStream?.readBytes()
+            if (bytes != null) {
+                imageUri = "data:image/jpeg;base64," + android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT).replace("\n", "")
+            }
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: android.graphics.Bitmap? ->
+        if (bitmap != null) {
+            val stream = java.io.ByteArrayOutputStream()
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, stream)
+            val bytes = stream.toByteArray()
+            imageUri = "data:image/jpeg;base64," + android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT).replace("\n", "")
+        }
+    }
+    
+    var showImageSourceDialog by remember { mutableStateOf(false) }
+
+    if (showImageSourceDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showImageSourceDialog = false },
+            title = { Text("Choose Profile Picture") },
+            text = { Text("Select the source for your new profile picture.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showImageSourceDialog = false
+                    cameraLauncher.launch(null)
+                }) {
+                    Text("Camera")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showImageSourceDialog = false
+                    galleryLauncher.launch("image/*")
+                }) {
+                    Text("Photos")
+                }
+            }
+        )
+    }
 
     val tealColor = MaterialTheme.colorScheme.primary
 
@@ -5451,14 +5516,32 @@ fun EditProfileScreen(viewModel: MainViewModel, onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(32.dp))
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Image(
-                    painter = painterResource(id = R.drawable.app_logo),
-                    contentDescription = "App Logo",
+                Box(
                     modifier = Modifier
                         .size(100.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
+                        .clip(CircleShape)
+                        .clickable { showImageSourceDialog = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (imageUri.isNotEmpty()) {
+                        coil.compose.AsyncImage(
+                            model = imageUri,
+                            contentDescription = "Profile Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.app_logo),
+                            contentDescription = "App Logo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Box(modifier = Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.3f)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = "Edit Image", tint = Color.White)
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

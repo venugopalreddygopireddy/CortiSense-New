@@ -15,6 +15,7 @@ import api, {
   getTrendsAnalytics,
   getFactorsAnalytics,
   getDashboardSummary,
+  getProfile,
   completeAction,
   ActionItem
 } from '@/lib/api';
@@ -55,6 +56,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string>('User');
+  const [profileImage, setProfileImage] = useState<string>('');
   const [showAlertScore, setShowAlertScore] = useState<number | null>(null);
 
   // Analytics States
@@ -82,19 +84,22 @@ export default function Dashboard() {
 
       try {
         setLoading(true);
-        const [hist, weekly, monthly, trends, factors] = await Promise.all([
+        const [hist, weekly, monthly, trends, factors, summary, profile] = await Promise.all([
           getHistory().catch(() => []),
           getWeeklyAnalytics().catch(() => null),
           getMonthlyAnalytics().catch(() => null),
           getTrendsAnalytics().catch(() => null),
           getFactorsAnalytics().catch(() => null),
-          getDashboardSummary().catch(() => null)
+          getDashboardSummary().catch(() => null),
+          getProfile().catch(() => null)
         ]);
         setHistory(hist);
         if (weekly) setWeeklyData(weekly);
         if (monthly) setMonthlyData(monthly);
         if (trends) setTrendsData(trends);
         if (factors) setFactorsData(factors);
+        if (summary) setDashboardSummary(summary);
+        if (profile?.profile_image) setProfileImage(profile.profile_image);
         setError(null);
       } catch (err: any) {
         console.error("Failed to fetch history:", err);
@@ -730,8 +735,12 @@ const renderHistory = () => {
       return (
         <div className="flex-1 overflow-y-auto px-6 py-12 flex flex-col">
           <div className="flex flex-col items-center mb-10">
-            <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-[#050810] font-bold text-4xl mb-4 shadow-lg shadow-emerald-500/20">
-              {userEmail.charAt(0)}
+            <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-[#050810] font-bold text-4xl mb-4 shadow-lg shadow-emerald-500/20 overflow-hidden">
+              {profileImage ? (
+                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                userEmail.charAt(0)
+              )}
             </div>
             <h2 className="text-2xl font-bold text-white mb-1">{userEmail}</h2>
             <p className="text-slate-400 text-sm">{localStorage.getItem('userEmail')}</p>
