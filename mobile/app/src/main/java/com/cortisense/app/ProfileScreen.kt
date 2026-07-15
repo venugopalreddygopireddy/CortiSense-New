@@ -100,7 +100,6 @@ fun ProfileScreen(
         }
     }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
     val calendar = java.util.Calendar.getInstance()
     val datePickerDialog = android.app.DatePickerDialog(
         context,
