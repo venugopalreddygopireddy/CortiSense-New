@@ -272,11 +272,11 @@ class MainActivity : AppCompatActivity() {
                             SignupScreen(
                                 backendError = viewModel.errorMessage,
                                 isLoading = viewModel.isLoading,
-                                onCreateAccount = { name, email, password ->
+                                onCreateAccount = { name, email, password, imageBase64 ->
                                     val parts = name.trim().split(" ", limit = 2)
                                     val firstName = parts.getOrNull(0) ?: name
                                     val lastName = parts.getOrNull(1) ?: ""
-                                    
+
                                     viewModel.registerWithApi(
                                         firstName = firstName.ifEmpty { "User" },
                                         lastName = lastName,
@@ -284,10 +284,11 @@ class MainActivity : AppCompatActivity() {
                                         gender = "Not specified",
                                         email = email,
                                         pass = password,
+                                        imageBase64 = imageBase64,
                                         onSuccess = {
                                             android.widget.Toast.makeText(
-                                                context, 
-                                                "Account created successfully. Please sign in.", 
+                                                context,
+                                                "Account created successfully. Please sign in.",
                                                 android.widget.Toast.LENGTH_LONG
                                             ).show()
                                             navController.navigate("login") {
@@ -1515,7 +1516,7 @@ fun SignupScreen(
     backendError: String? = null,
     isLoading: Boolean = false,
     viewModel: MainViewModel? = null,
-    onCreateAccount: (String, String, String) -> Unit, 
+    onCreateAccount: (String, String, String, String) -> Unit,
     onSignInClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -1524,11 +1525,70 @@ fun SignupScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var imageBase64 by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    
+    var showImageSourceDialog by remember { mutableStateOf(false) }
+
+    val maxSizeBytes = 2 * 1024 * 1024 // 2 MB
+
+    // Gallery launcher — reads bytes and converts to Base64
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        if (uri != null) {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val bytes = inputStream?.readBytes()
+            if (bytes != null) {
+                if (bytes.size > maxSizeBytes) {
+                    errorMessage = "Profile photo must be smaller than 2 MB."
+                } else {
+                    imageBase64 = "data:image/jpeg;base64," + android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT).replace("\n", "")
+                    errorMessage = null
+                }
+            }
+        }
+    }
+
+    // Camera launcher — compresses bitmap and converts to Base64
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: android.graphics.Bitmap? ->
+        if (bitmap != null) {
+            val stream = java.io.ByteArrayOutputStream()
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, stream)
+            val bytes = stream.toByteArray()
+            if (bytes.size > maxSizeBytes) {
+                errorMessage = "Profile photo must be smaller than 2 MB."
+            } else {
+                imageBase64 = "data:image/jpeg;base64," + android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT).replace("\n", "")
+                errorMessage = null
+            }
+        }
+    }
+
+    if (showImageSourceDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showImageSourceDialog = false },
+            title = { Text("Add Profile Photo") },
+            text = { Text("Choose how to add your profile picture.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showImageSourceDialog = false
+                    cameraLauncher.launch(null)
+                }) { Text("Camera") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showImageSourceDialog = false
+                    galleryLauncher.launch("image/*")
+                }) { Text("Gallery") }
+            }
+        )
+    }
+
     val currentLanguage by (viewModel?.language ?: kotlinx.coroutines.flow.MutableStateFlow("en")).collectAsState()
     var expandedLanguageMenu by remember { mutableStateOf(false) }
-    
+
     LaunchedEffect(backendError) {
         if (backendError != null) {
             errorMessage = backendError
@@ -1567,7 +1627,58 @@ fun SignupScreen(
                     .padding(top = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- Profile Image Picker ---
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .clickable { showImageSourceDialog = true },
+                contentAlignment = Alignment.Center
+            ) {
+                if (imageBase64.isNotEmpty()) {
+                    coil.compose.AsyncImage(
+                        model = imageBase64,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Add Photo",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+                // Camera overlay
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color.Black.copy(alpha = if (imageBase64.isNotEmpty()) 0.3f else 0f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (imageBase64.isNotEmpty()) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = "Change", tint = Color.White, modifier = Modifier.size(22.dp))
+                    }
+                }
+            }
+            Text(
+                text = "Tap to add photo (optional, max 2 MB)",
+                fontSize = 12.sp,
+                color = subtitleColor,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             CustomTextField(
                 label = stringResource(R.string.full_name),
@@ -1680,8 +1791,7 @@ fun SignupScreen(
                         errorMessage = context.getString(R.string.passwords_do_not_match)
                     } else {
                         coroutineScope.launch {
-
-                            onCreateAccount(name, email, password)
+                            onCreateAccount(name, email, password, imageBase64)
                         }
                     }
                 },
@@ -1718,7 +1828,7 @@ fun SignupScreen(
 @Composable
 fun SignupPreview() {
     CortiSenseTheme {
-        SignupScreen(onCreateAccount = { _, _, _ -> }, onSignInClick = {})
+        SignupScreen(onCreateAccount = { _, _, _, _ -> }, onSignInClick = {})
     }
 }
 

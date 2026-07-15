@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/Layout/MainLayout';
 import { getProfile, updateProfile, getDashboardSummary, DashboardSummaryResponse } from '@/lib/api';
-import { ChevronRight, User, Palette, Globe, Bell, Shield, HelpCircle, LogOut, ArrowLeft, Flame, Activity } from 'lucide-react';
+import { ChevronRight, User, Palette, Globe, Bell, Shield, HelpCircle, LogOut, ArrowLeft, Flame, Activity, Camera } from 'lucide-react';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -19,6 +19,8 @@ export default function ProfileScreen() {
   const [gender, setGender] = useState('');
   const [goal, setGoal] = useState('');
   const [profileImage, setProfileImage] = useState<string | undefined>('');
+  const [profileImageError, setProfileImageError] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Dashboard state
   const [dashboard, setDashboard] = useState<DashboardSummaryResponse | null>(null);
@@ -106,9 +108,18 @@ export default function ProfileScreen() {
     }
   };
 
+  const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2 MB
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      setProfileImageError('Profile photo must be smaller than 2 MB. Please choose a smaller image.');
+      e.target.value = '';
+      return;
+    }
+    setProfileImageError('');
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -173,19 +184,39 @@ export default function ProfileScreen() {
           </div>
 
           <div className="flex flex-col items-center mb-8 mt-2">
-            <label className="cursor-pointer relative group">
-              <div className="w-24 h-24 bg-emerald-500 rounded-3xl flex items-center justify-center text-[#050810] font-bold text-4xl shadow-lg shadow-emerald-500/20 overflow-hidden">
+            <div
+              className="relative w-24 h-24 rounded-full cursor-pointer group"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <div className="w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center text-[#050810] font-bold text-4xl shadow-lg shadow-emerald-500/20 overflow-hidden">
                 {profileImage ? (
                   <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   firstName ? firstName.charAt(0).toUpperCase() : (userEmail ? userEmail.charAt(0).toUpperCase() : 'U')
                 )}
               </div>
-              <div className="absolute inset-0 bg-black/40 rounded-3xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="text-white text-xs font-bold">Upload</span>
+              {/* Camera icon overlay */}
+              <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera size={22} className="text-white" />
               </div>
-              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-            </label>
+              {/* Always-visible small camera badge */}
+              <div className="absolute bottom-0 right-0 w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-[#050810]">
+                <Camera size={13} className="text-[#050810]" />
+              </div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+            {profileImageError && (
+              <p className="text-rose-500 text-xs mt-2 text-center">{profileImageError}</p>
+            )}
+            {!profileImageError && (
+              <p className="text-slate-500 text-xs mt-2">Tap to change (max 2 MB)</p>
+            )}
             {fullName && <h2 className="text-xl font-bold text-white mb-1 mt-4">{fullName}</h2>}
             <p className="text-slate-400 text-sm font-medium">{userEmail}</p>
           </div>

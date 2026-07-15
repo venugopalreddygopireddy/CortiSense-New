@@ -541,12 +541,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun registerWithApi(firstName: String, lastName: String, age: Int, gender: String, email: String, pass: String, onSuccess: () -> Unit) {
+    fun registerWithApi(firstName: String, lastName: String, age: Int, gender: String, email: String, pass: String, imageBase64: String = "", onSuccess: () -> Unit) {
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
             try {
-                val req = RegisterRequest(firstName, lastName, age, gender, email.trim(), pass)
+                val req = RegisterRequest(
+                    firstName, lastName, age, gender, email.trim(), pass,
+                    profileImage = imageBase64.takeIf { it.isNotEmpty() }
+                )
                 RetrofitClient.instance.register(req)
                 // DO NOT automatically log in or save JWT. Force user to sign in.
                 onSuccess()

@@ -13,6 +13,7 @@ class UserCreate(BaseModel):
     gender: str
     email: str
     password: str
+    profile_image: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: str

@@ -24,7 +24,8 @@ data class RegisterRequest(
     @SerializedName("age") val age: Int,
     @SerializedName("gender") val gender: String,
     @SerializedName("email") val email: String,
-    @SerializedName("password") val password: String
+    @SerializedName("password") val password: String,
+    @SerializedName("profile_image") val profileImage: String? = null
 )
 
 data class LoginRequest(

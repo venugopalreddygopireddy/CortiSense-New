@@ -13,7 +13,8 @@ def create_user(db: Session, user: schemas.UserCreate, hashed_password: str):
         email=user.email,
         hashed_password=hashed_password,
         age=user.age,
-        gender=user.gender
+        gender=user.gender,
+        profile_image=user.profile_image
     )
     db.add(db_user)
     db.commit()
