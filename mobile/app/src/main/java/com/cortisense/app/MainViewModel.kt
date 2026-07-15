@@ -735,7 +735,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logout() {
         viewModelScope.launch {
-            database.clearAllTables()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                database.clearAllTables()
+            }
             preferenceManager.saveJwtToken("")
             preferenceManager.setLoggedIn(false)
             preferenceManager.saveRegistration("", "", "")
