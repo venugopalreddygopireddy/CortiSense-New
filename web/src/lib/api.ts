@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-let API_BASE_URL = 'https://cortisense-backend.onrender.com';
+let API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cortisense-backend.onrender.com';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
