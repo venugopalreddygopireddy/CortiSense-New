@@ -624,9 +624,17 @@ const renderHistory = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-10 mt-2">
             <div className="flex items-center gap-4">
-              <div className="w-[60px] h-[60px] rounded-full border border-emerald-400 flex flex-col items-center justify-center bg-[#172c29]">
-                <span className="text-emerald-400 font-bold text-2xl leading-none">C</span>
-                <span className="text-emerald-400 text-[6px] tracking-widest mt-0.5 uppercase">CortiSense</span>
+              <div className="w-[60px] h-[60px] rounded-full border border-emerald-400 flex flex-col items-center justify-center bg-[#172c29] overflow-hidden">
+                {profileImage ? (
+                  <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <>
+                    <span className="text-emerald-400 font-bold text-2xl leading-none">
+                      {userEmail ? userEmail.charAt(0).toUpperCase() : 'C'}
+                    </span>
+                    {!userEmail && <span className="text-emerald-400 text-[6px] tracking-widest mt-0.5 uppercase">CortiSense</span>}
+                  </>
+                )}
               </div>
               <p className="text-slate-300 text-[17px] tracking-wide">{greeting}</p>
             </div>
